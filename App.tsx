@@ -1,0 +1,397 @@
+
+import React, { useState, useEffect } from 'react';
+import { Sidebar } from './components/Sidebar';
+import { TyphoonMap } from './components/TyphoonMap';
+import { MetricsChart } from './components/MetricsChart';
+import { SatelliteView } from './components/SatelliteView';
+import { LabOverview, LabTeam, LabResearch, LabPublications } from './components/LabPages';
+import { MOCK_CASES } from './utils/dataGenerator';
+import { Language, ViewType } from './types';
+import { TRANSLATIONS } from './constants';
+import { 
+  Play, 
+  Pause, 
+  RotateCcw, 
+  ChevronLeft, 
+  ChevronRight, 
+  Zap, 
+  Target, 
+  ChevronDown,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Settings2
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+
+// Collapsible Panel Component
+const CollapsiblePanel: React.FC<{
+  title: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+  extraHeader?: React.ReactNode;
+}> = ({ title, isOpen, onToggle, children, extraHeader }) => (
+  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden shrink-0 transition-all duration-300">
+    <button 
+      onClick={onToggle} 
+      className="w-full flex items-center justify-between p-4 bg-slate-50/50 hover:bg-slate-100 transition-colors border-b border-transparent data-[open=true]:border-slate-100"
+      data-open={isOpen}
+    >
+      <div className="flex items-center gap-2">
+        <span className="font-bold text-slate-700 text-xs uppercase tracking-wide">{title}</span>
+        {extraHeader}
+      </div>
+      <ChevronDown 
+        size={16} 
+        className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
+      />
+    </button>
+    <div 
+      className={`transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}
+    >
+      <div className="p-4 pt-4">
+        {children}
+      </div>
+    </div>
+  </div>
+);
+
+const App: React.FC = () => {
+  const [language, setLanguage] = useState<Language>('zh');
+  const [selectedCaseId, setSelectedCaseId] = useState(MOCK_CASES[0].id);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Navigation State
+  const [currentView, setCurrentView] = useState<ViewType>('map');
+  
+  // Layout State
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+
+  // Panel Inner States
+  const [panels, setPanels] = useState({
+    metrics: true,
+    satellite: true,
+    physics: true
+  });
+
+  const togglePanel = (key: keyof typeof panels) => {
+    setPanels(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const selectedCase = MOCK_CASES.find(c => c.id === selectedCaseId) || MOCK_CASES[0];
+  const t = (key: string) => TRANSLATIONS[key][language];
+
+  useEffect(() => {
+    let interval: any;
+    if (isPlaying && currentView === 'map') {
+      interval = setInterval(() => {
+        setCurrentIndex(prev => {
+          if (prev >= selectedCase.data.length - 1) {
+            setIsPlaying(false);
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000); 
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, selectedCase.data.length, currentView]);
+
+  const handleTimelineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCurrentIndex(parseInt(e.target.value));
+    setIsPlaying(false);
+  };
+
+  const resetSimulation = () => {
+    setCurrentIndex(0);
+    setIsPlaying(false);
+  };
+
+  // Main Content Renderer based on currentView
+  const renderMainContent = () => {
+    switch (currentView) {
+      case 'lab_overview':
+        return <LabOverview language={language} />;
+      case 'lab_team':
+        return <LabTeam language={language} />;
+      case 'lab_research':
+        return <LabResearch language={language} />;
+      case 'lab_publications':
+        return <LabPublications language={language} />;
+      case 'map':
+      default:
+        // Render Map and its overlays
+        return (
+          <>
+            {/* Map View */}
+            <div className="absolute inset-0 z-0">
+              <TyphoonMap 
+                data={selectedCase.data} 
+                currentIndex={currentIndex} 
+                language={language} 
+                isRightPanelOpen={isRightPanelOpen}
+              />
+            </div>
+
+            {/* Floating Expand Button - RIGHT */}
+            {!isRightPanelOpen && (
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                onClick={() => setIsRightPanelOpen(true)}
+                className="absolute top-6 right-6 z-[1002] bg-white p-2 rounded-lg shadow-lg border border-slate-200 text-slate-500 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+                title="Expand Dashboard"
+              >
+                <PanelRightOpen size={20} />
+              </motion.button>
+            )}
+
+            {/* Top Floating Control (Case Selector) */}
+            <div 
+                className={`absolute top-6 z-[1001] transition-all duration-300 ease-in-out pointer-events-none flex ${
+                    !isLeftPanelOpen ? 'left-[4.5rem]' : 'left-6'
+                }`}
+            >
+                <div className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl shadow-xl border border-white flex items-center gap-4 pointer-events-auto">
+                    <div className="flex items-center gap-2">
+                       <Target size={14} className="text-blue-500" />
+                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('active_case')}</span>
+                    </div>
+                    <select 
+                      value={selectedCaseId} 
+                      onChange={(e) => {
+                        setSelectedCaseId(e.target.value);
+                        setCurrentIndex(0);
+                        setIsPlaying(false);
+                      }}
+                      className="bg-slate-100/50 text-sm font-semibold text-slate-700 outline-none border-none py-1 px-3 rounded-lg hover:bg-slate-200/50 cursor-pointer transition-colors"
+                    >
+                      {MOCK_CASES.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {language === 'en' ? c.nameEn : c.nameZh}
+                        </option>
+                      ))}
+                    </select>
+                </div>
+            </div>
+
+            {/* Bottom Timeline Control */}
+            <div className="absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none">
+              <div className="bg-white/95 backdrop-blur-md p-6 pb-6 border-t border-slate-200 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)] flex flex-col gap-4 pointer-events-auto w-full">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                            isPlaying ? 'bg-slate-100 text-slate-600' : 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                        }`}
+                      >
+                        {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} className="ml-1" fill="currentColor" />}
+                      </button>
+                      <button 
+                        onClick={resetSimulation}
+                        className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-400 transition-colors"
+                      >
+                        <RotateCcw size={18} />
+                      </button>
+                    </div>
+                    <div>
+                       <h4 className="text-sm font-bold text-slate-800">{t('timeline')}</h4>
+                       <p className="text-[10px] text-slate-400 font-medium">{t('zoom_hint')}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                     <div className="text-right">
+                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Simulation Time</p>
+                        <p className="text-sm font-bold text-blue-600">T+{selectedCase.data[currentIndex].time}</p>
+                     </div>
+                     <div className="h-8 w-px bg-slate-200" />
+                     <div className="flex gap-1">
+                        <button className="p-1 hover:bg-slate-200 rounded text-slate-400"><ChevronLeft size={16}/></button>
+                        <button className="p-1 hover:bg-slate-200 rounded text-slate-400"><ChevronRight size={16}/></button>
+                     </div>
+                  </div>
+                </div>
+
+                <div className="relative h-6 flex items-center">
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max={selectedCase.data.length - 1} 
+                    value={currentIndex}
+                    onChange={handleTimelineChange}
+                    className="relative z-10 w-full h-1.5 bg-slate-200/50 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                  <div 
+                    className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 bg-blue-600 rounded-lg pointer-events-none z-0" 
+                    style={{ width: `${(currentIndex / (selectedCase.data.length - 1)) * 100}%` }} 
+                  />
+                </div>
+                
+                <div className="flex justify-between px-1">
+                    {[0, 6, 12, 18, 24].map(h => (
+                        <span key={h} className="text-[10px] text-slate-400 font-bold">{String(h).padStart(2, '0')}:00</span>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </>
+        );
+    }
+  };
+
+  return (
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans">
+      
+      {/* --- Left Sidebar Container --- */}
+      <motion.aside
+        initial={{ width: 288 }} // w-72 = 288px
+        animate={{ width: isLeftPanelOpen ? 288 : 0 }}
+        transition={{ duration: 0.4, ease: "easeInOut" }}
+        className="flex-shrink-0 overflow-hidden relative z-20"
+      >
+        <Sidebar 
+          language={language} 
+          onLanguageToggle={() => setLanguage(l => l === 'en' ? 'zh' : 'en')} 
+          currentView={currentView}
+          onNavigate={setCurrentView}
+          onCollapse={() => setIsLeftPanelOpen(false)}
+        />
+      </motion.aside>
+
+      {/* --- Main Content Area --- */}
+      <main className="flex-1 relative overflow-hidden flex flex-col bg-slate-100">
+        
+        {/* Render View Content */}
+        {renderMainContent()}
+
+        {/* Floating Expand Button - LEFT */}
+        {!isLeftPanelOpen && (
+          <motion.button
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => setIsLeftPanelOpen(true)}
+            className="absolute top-6 left-6 z-[1002] bg-white p-2 rounded-lg shadow-lg border border-slate-200 text-slate-500 hover:text-blue-600 hover:bg-slate-50 transition-colors"
+            title="Expand Sidebar"
+          >
+            <PanelLeftOpen size={20} />
+          </motion.button>
+        )}
+      </main>
+
+      {/* --- Right Dashboard Panel - Only visible in MAP view --- */}
+      <AnimatePresence>
+      {currentView === 'map' && (
+        <motion.aside 
+            initial={{ width: 420, opacity: 1 }}
+            animate={{ width: isRightPanelOpen ? 420 : 0, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="h-full border-l border-slate-200 bg-white z-10 relative flex-shrink-0 overflow-hidden shadow-xl"
+        >
+            {/* Inner container with fixed width to prevent content squishing during animation */}
+            <div className="w-[420px] h-full flex flex-col">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div className="flex items-center gap-2 text-slate-700 font-bold">
+                        <Settings2 size={18} className="text-blue-500" />
+                        <span>{t('analysis_dashboard')}</span>
+                    </div>
+                    <button 
+                    onClick={() => setIsRightPanelOpen(false)}
+                    className="p-1.5 rounded-md text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+                    >
+                        <PanelRightClose size={18} />
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 gap-4 flex flex-col">
+                    {/* Metrics Chart Panel */}
+                    <CollapsiblePanel 
+                    title={t('metrics')} 
+                    isOpen={panels.metrics} 
+                    onToggle={() => togglePanel('metrics')}
+                    >
+                    <MetricsChart 
+                        data={selectedCase.data} 
+                        currentIndex={currentIndex} 
+                        language={language} 
+                    />
+                    </CollapsiblePanel>
+                    
+                    {/* Satellite View Panel */}
+                    <CollapsiblePanel 
+                    title={t('cloud_view')} 
+                    isOpen={panels.satellite} 
+                    onToggle={() => togglePanel('satellite')}
+                    >
+                    <SatelliteView language={language} />
+                    </CollapsiblePanel>
+
+                    {/* Physics Explainer Panel */}
+                    <CollapsiblePanel 
+                    title={t('physics_prior')} 
+                    isOpen={panels.physics} 
+                    onToggle={() => togglePanel('physics')}
+                    extraHeader={<Zap size={14} className="text-blue-500 fill-blue-500" />}
+                    >
+                        <div className="space-y-4">
+                        <div className="bg-slate-50/80 backdrop-blur-sm p-4 rounded-xl border border-slate-100 font-serif relative">
+                            <p className="text-[9px] text-slate-400 font-mono mb-2 uppercase tracking-tighter">Holland Wind Field Model</p>
+                            <div className="text-[15px] italic text-slate-800 leading-tight tracking-tight py-1">
+                            r<sup>B</sup> ln[(p<sub>n</sub> - p<sub>c</sub>) / (p<sub>r</sub> - p<sub>c</sub>)] = A
+                            </div>
+                            
+                            {/* Formula Legend */}
+                            <div className="mt-3 pt-2 border-t border-slate-200/50 grid grid-cols-2 gap-y-1.5 gap-x-2">
+                            <div className="flex items-center gap-1.5">
+                                <span className="font-serif italic font-bold text-slate-600 text-[10px]">r</span>
+                                <span className="text-[9px] text-slate-500 leading-none">{t('physics_param_r')}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="font-serif italic font-bold text-slate-600 text-[10px]">B</span>
+                                <span className="text-[9px] text-slate-500 leading-none">{t('physics_param_B')}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="font-serif italic font-bold text-slate-600 text-[10px]">p<sub>n</sub></span>
+                                <span className="text-[9px] text-slate-500 leading-none">{t('physics_param_pn')}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="font-serif italic font-bold text-slate-600 text-[10px]">p<sub>c</sub></span>
+                                <span className="text-[9px] text-slate-500 leading-none">{t('physics_param_pc')}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="font-serif italic font-bold text-slate-600 text-[10px]">p<sub>r</sub></span>
+                                <span className="text-[9px] text-slate-500 leading-none">{t('physics_param_pr')}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="font-serif italic font-bold text-slate-600 text-[10px]">A</span>
+                                <span className="text-[9px] text-slate-500 leading-none">{t('physics_param_A')}</span>
+                            </div>
+                            </div>
+
+                            <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-blue-100" />
+                        </div>
+                        
+                        <div className="flex items-start gap-3">
+                            <div className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                            {t('physics_desc')}
+                            </p>
+                        </div>
+                        </div>
+                    </CollapsiblePanel>
+                </div>
+            </div>
+        </motion.aside>
+      )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default App;

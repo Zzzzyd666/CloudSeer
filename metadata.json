@@ -1,0 +1,7 @@
+{
+  "name": "MeteoAI Visualization Platform",
+  "description": "A high-fidelity meteorological research platform for AI-driven typhoon intensity estimation and internal structure visualization.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
