@@ -28,9 +28,9 @@ const paperModules = import.meta.glob('/src/papers/*.pdf', { query: '?url', impo
 
 const DYNAMIC_PAPERS = Object.entries(paperModules).map(([path, url]) => {
   const filename = path.split('/').pop()?.replace('.pdf', '') || '';
-  // Match YYYY_Conf_Author_Title
+  // 匹配 YYYY_Conf_Author_Title 格式
   const matchWithAuthor = filename.match(/^(\d{4})_([^_]+)_([^_]+)_(.+)$/);
-  // Match YYYY_Conf_Title (fallback)
+  // 匹配 YYYY_Conf_Title 格式（降级处理）
   const matchWithoutAuthor = filename.match(/^(\d{4})_([^_]+)_(.+)$/);
   
   if (matchWithAuthor) {
@@ -60,7 +60,7 @@ const DYNAMIC_PAPERS = Object.entries(paperModules).map(([path, url]) => {
   };
 }).sort((a, b) => b.year.localeCompare(a.year));
 
-// --- Shared Layout Component ---
+// --- 共享布局组件 ---
 const PageLayout: React.FC<{ children: React.ReactNode; title: string; subtitle: string }> = ({ children, title, subtitle }) => (
   <motion.div 
     initial={{ opacity: 0, y: 10 }}
@@ -79,7 +79,7 @@ const PageLayout: React.FC<{ children: React.ReactNode; title: string; subtitle:
   </motion.div>
 );
 
-// --- Sub-Component: Animated Stat Card ---
+// --- 子组件：动画统计卡片 ---
 const StatCard: React.FC<{ icon: any; label: string; val: string; sub: string; delay: number }> = ({ icon: Icon, label, val, sub, delay }) => {
   return (
     <motion.div 
@@ -112,7 +112,7 @@ const StatCard: React.FC<{ icon: any; label: string; val: string; sub: string; d
   );
 };
 
-// --- Sub-Component: MeteoCore Abstract Art ---
+// --- 子组件：MeteoCore 抽象艺术图形 ---
 const MeteoCore = () => {
   return (
     <motion.div 
@@ -182,7 +182,7 @@ const MeteoCore = () => {
   );
 };
 
-// --- 1. Lab Overview Page ---
+// --- 1. 实验室概况页面 ---
 export const LabOverview: React.FC<{ language: Language }> = ({ language }) => {
   return (
     <PageLayout 
@@ -226,7 +226,7 @@ export const LabOverview: React.FC<{ language: Language }> = ({ language }) => {
   );
 };
 
-// --- 2. Lab Team Page ---
+// --- 2. 实验室团队页面 ---
 export const LabTeam: React.FC<{ language: Language }> = ({ language }) => {
     const LEADER = {
         name: language === 'zh' ? "教授 A" : "Professor A",
@@ -301,7 +301,7 @@ export const LabTeam: React.FC<{ language: Language }> = ({ language }) => {
         ))}
       </div>
 
-      {/* Contact Us Section */}
+      {/* 联系我们部分 */}
       <div className="mt-16">
         <h3 className="text-3xl font-extrabold text-slate-900 mb-8 flex items-center gap-3">
           <span className="w-1.5 h-8 bg-blue-600 rounded-full"/>
@@ -375,7 +375,7 @@ export const LabTeam: React.FC<{ language: Language }> = ({ language }) => {
   );
 };
 
-// --- 3. Lab Research Page ---
+// --- 3. 实验室研究方向页面 ---
 export const LabResearch: React.FC<{ language: Language }> = ({ language }) => {
     const AREAS = [
         {
@@ -442,7 +442,7 @@ export const LabResearch: React.FC<{ language: Language }> = ({ language }) => {
   );
 };
 
-// --- 4. Lab Publications Page ---
+// --- 4. 实验室学术成果页面 ---
 export const LabPublications: React.FC<{ language: Language }> = ({ language }) => {
   return (
     <PageLayout 
@@ -488,4 +488,4 @@ export const LabPublications: React.FC<{ language: Language }> = ({ language }) 
   );
 };
 
-// End of LabPages.tsx
+// LabPages.tsx 结束

@@ -52,7 +52,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ data, currentIndex, 
 
   return (
     <div className="flex flex-col gap-6 select-none">
-      {/* Chart 1: Wind Speed */}
+      {/* 图表 1：风速 */}
       <div className="flex flex-col">
         <h4 className="text-[11px] font-semibold text-slate-500 mb-2 pl-1">{t('wind_speed')}</h4>
         <div className="h-[160px] w-full">
@@ -88,7 +88,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ data, currentIndex, 
         </div>
       </div>
 
-      {/* Chart 2: Pressure */}
+      {/* 图表 2：气压 */}
       <div className="flex flex-col border-t border-slate-100 pt-4">
         <h4 className="text-[11px] font-semibold text-slate-500 mb-2 pl-1">{t('pressure')}</h4>
         <div className="h-[160px] w-full">
@@ -124,7 +124,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ data, currentIndex, 
         </div>
       </div>
 
-      {/* Chart 3: Radii */}
+      {/* 图表 3：半径 */}
       <div className="flex flex-col border-t border-slate-100 pt-4">
         <h4 className="text-[11px] font-semibold text-slate-500 mb-2 pl-1">{t('wind_radii')}</h4>
         <div className="h-[160px] w-full">
@@ -137,7 +137,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ data, currentIndex, 
               <ReferenceLine x={currentPoint?.time} stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" />
               <Legend iconType="plainline" wrapperStyle={{ fontSize: '10px', marginTop: '-5px' }} />
               
-              {/* Inner Radius */}
+              {/* 内半径 */}
               <Line 
                 name={`${t('traditional_method')} (Inner)`} 
                 type="monotone" 
@@ -156,7 +156,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ data, currentIndex, 
                 dot={false}
               />
 
-              {/* Outer Radius */}
+              {/* 外半径 */}
               <Line 
                 name={`${t('traditional_method')} (Outer)`} 
                 type="monotone" 

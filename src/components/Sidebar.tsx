@@ -21,7 +21,7 @@ import { TRANSLATIONS } from '../constants';
 interface SidebarProps {
   language: Language;
   onLanguageToggle: () => void;
-  onNavigate: (view: ViewType) => void; // Generic navigation handler
+  onNavigate: (view: ViewType) => void; // 通用导航处理函数
   currentView: ViewType;
   onCollapse: () => void; 
 }
@@ -94,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ language, onLanguageToggle, on
   const t = (key: string) => TRANSLATIONS[key][language];
 
   return (
-    // Fixed width 288px to strictly match the parent motion.aside width
+    // 固定宽度 288px，严格匹配父元素 motion.aside 的宽度
     <div className="h-full w-[288px] min-w-[288px] border-r border-slate-200 bg-white flex flex-col z-20 relative">
       <div className="p-5 border-b border-slate-100 flex items-start justify-between gap-2">
         <div>
@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ language, onLanguageToggle, on
           <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">RESEARCH PLATFORM</p>
         </div>
         
-        {/* Collapse Button */}
+        {/* 折叠按钮 */}
         <button 
           onClick={onCollapse}
           className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors -mt-1 -mr-1 shrink-0"
@@ -114,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ language, onLanguageToggle, on
 
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
         
-        {/* Module 1: Laboratory Info */}
+        {/* 模块 1：实验室信息 */}
         <NavItem 
           icon={Building2} 
           label={t('lab_details')} 
@@ -147,7 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ language, onLanguageToggle, on
           />
         </NavItem>
         
-        {/* Module 2: Typhoon Estimation */}
+        {/* 模块 2：台风强度评估 */}
         <NavItem 
           icon={Wind} 
           label={t('typhoon_estimation')} 
@@ -155,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ language, onLanguageToggle, on
           onToggle={() => toggleExpand('estimation')}
         >
           <SubItem 
-             // Using a simple dot for the active visualizer indicator
+             // 使用一个简单的圆点作为活动可视化器的指示器
              icon={() => <div className={`w-1.5 h-1.5 rounded-full ml-1 mr-0.5 ${currentView === 'map' ? 'bg-blue-600' : 'bg-slate-300'}`} />}
              label={t('idol_viz')}
              onClick={() => onNavigate('map')}

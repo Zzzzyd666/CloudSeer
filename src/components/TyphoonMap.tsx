@@ -5,7 +5,7 @@ import L from 'leaflet';
 import { TyphoonPoint, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
 
-// Fix for default marker icons
+// 修复默认标记图标
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -17,19 +17,19 @@ interface TyphoonMapProps {
   data: TyphoonPoint[];
   currentIndex: number;
   language: Language;
-  isRightPanelOpen: boolean; // Added prop to control layout based on sidebar state
+  isRightPanelOpen: boolean; // 添加 prop 以根据侧边栏状态控制布局
 }
 
 const MapController: React.FC<{ center: [number, number] }> = ({ center }) => {
   const map = useMap();
   useEffect(() => {
-    // Duration slightly less than the 1000ms interval for smoother visual continuity
+    // 持续时间略小于 1000ms 间隔，以获得更平滑的视觉连续性
     map.panTo(center, { animate: true, duration: 0.8 });
   }, [center, map]);
   return null;
 };
 
-// Constant color for the inner wind ring to prevent color shifting during simulation
+// 内风圈保持恒定颜色，防止模拟过程中颜色偏移
 const INNER_RING_COLOR = '#3b82f6'; 
 
 export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, language, isRightPanelOpen }) => {
@@ -48,7 +48,7 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
         className="z-0"
         zoomControl={false}
       >
-        {/* Switched to AutoNavi (GaoDe) for Chinese labels and geopolitical compliance */}
+        {/* 切换到高德地图以支持中文标签和地缘政治合规性 */}
         <TileLayer
           attribution='&copy; <a href="https://www.amap.com/">高德地图</a>'
           url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
@@ -70,7 +70,7 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
           opacity={1}
         />
 
-        {/* Outer Wind Ring Circle - Visualizing the IDOL Prediction Structure */}
+        {/* 外风圈 - 可视化 IDOL 预测结构 */}
         <Circle
           center={currentPos}
           radius={currentPoint.outer_radius_pred * 1000}
@@ -83,7 +83,7 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
           }}
         />
 
-        {/* Inner Wind Ring Circle - Visualizing the IDOL Prediction Structure */}
+        {/* 内风圈 - 可视化 IDOL 预测结构 */}
         <Circle
           center={currentPos}
           radius={currentPoint.inner_radius_pred * 1000}
@@ -96,7 +96,7 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
           }}
         />
 
-        {/* Current Position Pulse Marker */}
+        {/* 当前位置脉冲标记 */}
         <Marker position={currentPos} icon={new L.DivIcon({
           className: 'custom-div-icon',
           html: `
@@ -129,7 +129,7 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
         <MapController center={currentPos} />
       </MapContainer>
 
-      {/* Styles for breathing inner core */}
+      {/* 内核呼吸动画样式 */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes innerBreathing {
           0% { fill-opacity: 0.35; stroke-width: 1.5; }
@@ -141,7 +141,7 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
         }
       `}} />
 
-      {/* Floating Indicators - 8 Parameter Comparison Dashboard */}
+      {/* 悬浮指示器 - 8 参数对比仪表盘 */}
       <div 
         className={`absolute right-6 z-[1000] bg-white/95 backdrop-blur-md p-5 rounded-[20px] border border-white shadow-2xl flex flex-col gap-4 min-w-[320px] transition-all duration-300 ease-in-out ${
           isRightPanelOpen ? 'top-6' : 'top-24'
@@ -155,10 +155,10 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
           </div>
         </div>
         
-        {/* Comparison Grid */}
+        {/* 对比网格 */}
         <div className="grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-3">
-            {/* Headers */}
-            <div className="h-4"></div> {/* Empty corner */}
+            {/* 表头 */}
+            <div className="h-4"></div> {/* 空白角 */}
             <div className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-tighter bg-slate-50 rounded py-0.5">
                {t('traditional_method')}
             </div>
@@ -166,7 +166,7 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
                {t('idol_model')}
             </div>
 
-            {/* Row 1: Inner Radius */}
+            {/* 第 1 行：内半径 */}
             <div className="text-[10px] font-bold text-slate-400 flex items-center gap-2">
                 {t('r_inner')}
                 <div className="w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-white shadow-[0_0_0_1px_rgba(59,130,246,0.3)]" />
@@ -178,7 +178,7 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
                {currentPoint.inner_radius_pred}<span className="text-[8px] text-blue-400 ml-0.5 font-normal">km</span>
             </div>
 
-            {/* Row 2: Outer Radius */}
+            {/* 第 2 行：外半径 */}
             <div className="text-[10px] font-bold text-slate-400 flex items-center gap-2">
                 {t('r_outer')}
                 <div className="w-2.5 h-2.5 rounded-full border border-blue-500 bg-blue-50" />
@@ -190,7 +190,7 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
                {currentPoint.outer_radius_pred}<span className="text-[8px] text-blue-400 ml-0.5 font-normal">km</span>
             </div>
 
-            {/* Row 3: Wind Speed */}
+            {/* 第 3 行：风速 */}
             <div className="text-[10px] font-bold text-slate-400 flex items-center">
                {t('wind_label_short')} <span className="ml-1 text-[8px] opacity-60">m/s</span>
             </div>
@@ -201,7 +201,7 @@ export const TyphoonMap: React.FC<TyphoonMapProps> = ({ data, currentIndex, lang
                {currentPoint.intensity_pred}
             </div>
 
-            {/* Row 4: Pressure */}
+            {/* 第 4 行：气压 */}
             <div className="text-[10px] font-bold text-slate-400 flex items-center">
                {t('pressure_label_short')} <span className="ml-1 text-[8px] opacity-60">hPa</span>
             </div>

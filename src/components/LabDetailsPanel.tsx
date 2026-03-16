@@ -25,7 +25,7 @@ interface LabDetailsPanelProps {
   activeSection: string; 
 }
 
-// --- Animation Variants ---
+// --- 动画变体 ---
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { 
@@ -43,26 +43,26 @@ const itemVariants: Variants = {
   visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } }
 };
 
-// --- Skeleton Component ---
+// --- 骨架屏组件 ---
 const Skeleton = ({ className }: { className: string }) => (
   <div className={`bg-slate-200/80 animate-pulse rounded-lg ${className}`} />
 );
 
-// --- New Abstract Graphic Component: MeteoCore ---
+// --- 新的抽象图形组件：MeteoCore ---
 const MeteoCore = () => {
   return (
     <div className="relative w-80 h-80 flex items-center justify-center select-none pointer-events-none">
-      {/* Background Glow */}
+      {/* 背景发光 */}
       <div className="absolute inset-0 bg-blue-500/10 rounded-full blur-[80px]" />
       
-      {/* Outer Ring - Radar Sweep */}
+      {/* 外环 - 雷达扫描 */}
       <motion.div 
         className="absolute inset-0 rounded-full border border-slate-200/50 border-dashed"
         animate={{ rotate: 360 }}
         transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
       />
       
-      {/* Middle Ring - Satellite Orbit */}
+      {/* 中环 - 卫星轨道 */}
       <motion.div 
         className="absolute inset-8 rounded-full border border-blue-500/20"
         style={{ borderRadius: "42% 58% 70% 30% / 45% 45% 55% 55%" }}
@@ -70,7 +70,7 @@ const MeteoCore = () => {
         transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
       />
 
-      {/* Inner Ring - Data Flow */}
+      {/* 内环 - 数据流 */}
       <motion.div 
         className="absolute inset-16 rounded-full border border-indigo-500/30"
         style={{ borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%" }}
@@ -81,7 +81,7 @@ const MeteoCore = () => {
         }}
       />
 
-      {/* Core - The AI "Brain" */}
+      {/* 核心 - AI“大脑” */}
       <div className="relative z-10 flex flex-col items-center justify-center">
          <motion.div 
             className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(79,70,229,0.4)] backdrop-blur-md border border-white/20"
@@ -91,7 +91,7 @@ const MeteoCore = () => {
             <Wind className="text-white" size={36} />
          </motion.div>
          
-         {/* Floating Label */}
+         {/* 悬浮标签 */}
          <motion.div 
             className="absolute -bottom-12 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full border border-slate-200 shadow-sm"
             initial={{ opacity: 0, y: 10 }}
@@ -102,7 +102,7 @@ const MeteoCore = () => {
          </motion.div>
       </div>
 
-      {/* Floating Particles */}
+      {/* 悬浮粒子 */}
       {[...Array(6)].map((_, i) => (
         <motion.div
           key={i}
@@ -126,7 +126,7 @@ const MeteoCore = () => {
   );
 };
 
-// --- Mock Data ---
+// --- 模拟数据 ---
 const RESEARCH_DIRECTIONS = [
   {
     id: 1,
@@ -151,14 +151,14 @@ const RESEARCH_DIRECTIONS = [
   }
 ];
 
-// --- Dynamic Papers Loading ---
+// --- 动态加载论文 ---
 const paperModules = import.meta.glob('/src/papers/*.pdf', { query: '?url', import: 'default', eager: true });
 
 const PAPERS = Object.entries(paperModules).map(([path, url]) => {
   const filename = path.split('/').pop()?.replace('.pdf', '') || '';
-  // Try to parse YYYY_Conf_Author_Title
+  // 尝试解析 YYYY_Conf_Author_Title 格式
   const matchWithAuthor = filename.match(/^(\d{4})_([^_]+)_([^_]+)_(.+)$/);
-  // Try to parse YYYY_Conf_Title
+  // 尝试解析 YYYY_Conf_Title 格式
   const matchWithoutAuthor = filename.match(/^(\d{4})_([^_]+)_(.+)$/);
   
   if (matchWithAuthor) {
@@ -181,7 +181,7 @@ const PAPERS = Object.entries(paperModules).map(([path, url]) => {
     };
   }
   
-  // Fallback
+  // 降级处理
   return {
     year: "N/A",
     conf: "Unknown",
@@ -217,7 +217,7 @@ export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClos
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true);
-      const timer = setTimeout(() => setIsLoading(false), 2000); // Simulate 2s loading
+      const timer = setTimeout(() => setIsLoading(false), 2000); // 模拟 2 秒加载时间
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -237,7 +237,7 @@ export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClos
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-end font-sans">
-      {/* Backdrop */}
+      {/* 背景幕 */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -246,7 +246,7 @@ export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClos
         className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm cursor-pointer"
       />
 
-      {/* Main Drawer/Panel */}
+      {/* 主抽屉/面板 */}
       <motion.div 
         variants={containerVariants}
         initial="hidden"
@@ -254,7 +254,7 @@ export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClos
         exit="exit"
         className="relative w-full md:w-[85%] lg:w-[75%] xl:w-[70%] h-full bg-white shadow-2xl overflow-y-auto border-l border-slate-100"
       >
-        {/* Close Button */}
+        {/* 关闭按钮 */}
         <button 
           onClick={onClose}
           className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-400 transition-colors z-50"
@@ -264,7 +264,7 @@ export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClos
 
         <div className="max-w-5xl mx-auto px-8 md:px-16 py-16 flex flex-col gap-24">
           
-          {/* 1. Hero / Overview Section */}
+          {/* 1. 英雄 / 概览部分 */}
           <motion.section 
             id="lab-overview" 
             variants={itemVariants} 
@@ -304,7 +304,7 @@ export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClos
                     We bridge the gap between physical meteorology and data-driven intelligence, building the next generation of global typhoon monitoring systems.
                   </p>
 
-                  {/* Quick Stats Bar */}
+                  {/* 快速统计栏 */}
                   <div className="flex items-center gap-8 py-6 border-y border-slate-100">
                      <div className="space-y-1">
                         <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider"><Database size={14}/> Datasets</div>
@@ -323,11 +323,11 @@ export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClos
               )}
             </div>
             
-            {/* New Abstract Graphic - Kept visible during loading for aesthetics */}
+            {/* 新的抽象图形 - 在加载期间保持可见以增加美感 */}
             <MeteoCore />
           </motion.section>
 
-          {/* 2. Research Directions */}
+          {/* 2. 研究方向 */}
           <motion.section 
             id="lab-research" 
             variants={itemVariants} 
@@ -375,7 +375,7 @@ export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClos
             </div>
           </motion.section>
 
-          {/* 3. Team Section */}
+          {/* 3. 团队部分 */}
           <motion.section 
             id="lab-team" 
             variants={itemVariants} 
@@ -422,7 +422,7 @@ export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClos
             </div>
           </motion.section>
 
-          {/* 4. Papers / Publications */}
+          {/* 4. 论文 / 出版物 */}
           <motion.section 
             id="lab-publications" 
             variants={itemVariants} 

@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-// Collapsible Panel Component
+// 可折叠面板组件
 const CollapsiblePanel: React.FC<{
   title: string;
   isOpen: boolean;
@@ -124,14 +124,14 @@ const App: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   
-  // Navigation State
+  // 导航状态
   const [currentView, setCurrentView] = useState<ViewType>('map');
   
-  // Layout State
+  // 布局状态
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
 
-  // Panel Inner States
+  // 面板内部状态
   const [panels, setPanels] = useState({
     metrics: true,
     satellite: true,
@@ -171,7 +171,7 @@ const App: React.FC = () => {
     setIsPlaying(false);
   };
 
-  // Main Content Renderer based on currentView
+  // 基于 currentView 的主内容渲染器
   const renderMainContent = () => {
     switch (currentView) {
       case 'lab_overview':
@@ -184,10 +184,10 @@ const App: React.FC = () => {
         return <LabPublications language={language} />;
       case 'map':
       default:
-        // Render Map and its overlays
+        // 渲染地图及其覆盖层
         return (
           <>
-            {/* Map View */}
+            {/* 地图视图 */}
             <div className="absolute inset-0 z-0">
               <TyphoonMap 
                 data={selectedCase.data} 
@@ -197,7 +197,7 @@ const App: React.FC = () => {
               />
             </div>
 
-            {/* Floating Expand Button - RIGHT */}
+            {/* 悬浮展开按钮 - 右侧 */}
             {!isRightPanelOpen && (
               <motion.button
                 initial={{ opacity: 0, x: 20 }}
@@ -210,7 +210,7 @@ const App: React.FC = () => {
               </motion.button>
             )}
 
-            {/* Top Floating Control (Case Selector) */}
+            {/* 顶部悬浮控制（场次选择器） */}
             <div 
                 className={`absolute top-6 z-[1001] transition-all duration-300 ease-in-out pointer-events-none flex ${
                     !isLeftPanelOpen ? 'left-[4.5rem]' : 'left-6'
@@ -234,7 +234,7 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            {/* Bottom Timeline Control */}
+            {/* 底部时间轴控制 */}
             <div className="absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none">
               <div className="bg-white/95 backdrop-blur-md p-6 pb-6 border-t border-slate-200 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)] flex flex-col gap-4 pointer-events-auto w-full">
                 <div className="flex items-center justify-between">
@@ -263,7 +263,7 @@ const App: React.FC = () => {
                   
                   <div className="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
                      <div className="text-right">
-                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Simulation Time</p>
+                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{language === 'en' ? 'Simulation Time' : '模拟时间'}</p>
                         <p className="text-sm font-bold text-blue-600">T+{selectedCase.data[currentIndex].time}</p>
                      </div>
                      <div className="h-8 w-px bg-slate-200" />
@@ -304,7 +304,7 @@ const App: React.FC = () => {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans">
       
-      {/* --- Left Sidebar Container --- */}
+      {/* --- 左侧边栏容器 --- */}
       <motion.aside
         initial={{ width: 288 }} // w-72 = 288px
         animate={{ width: isLeftPanelOpen ? 288 : 0 }}
@@ -320,13 +320,13 @@ const App: React.FC = () => {
         />
       </motion.aside>
 
-      {/* --- Main Content Area --- */}
+      {/* --- 主内容区域 --- */}
       <main className="flex-1 relative overflow-hidden flex flex-col bg-slate-100">
         
-        {/* Render View Content */}
+        {/* 渲染视图内容 */}
         {renderMainContent()}
 
-        {/* Floating Expand Button - LEFT */}
+        {/* 悬浮展开按钮 - 左侧 */}
         {!isLeftPanelOpen && (
           <motion.button
             initial={{ opacity: 0, x: -20 }}
@@ -340,7 +340,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* --- Right Dashboard Panel - Only visible in MAP view --- */}
+      {/* --- 右侧仪表盘面板 - 仅在地图视图中可见 --- */}
       <AnimatePresence>
       {currentView === 'map' && (
         <motion.aside 
@@ -350,7 +350,7 @@ const App: React.FC = () => {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="h-full border-l border-slate-200 bg-white z-10 relative flex-shrink-0 overflow-hidden shadow-xl"
         >
-            {/* Inner container with fixed width to prevent content squishing during animation */}
+            {/* 内部容器固定宽度，防止动画期间内容挤压 */}
             <div className="w-[420px] h-full flex flex-col">
                 <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <div className="flex items-center gap-2 text-slate-700 font-bold">
@@ -388,7 +388,7 @@ const App: React.FC = () => {
                     <SatelliteView language={language} />
                     </CollapsiblePanel>
 
-                    {/* Physics Explainer Panel */}
+                    {/* 物理先验解释面板 */}
                     <CollapsiblePanel 
                     title={t('physics_prior')} 
                     isOpen={panels.physics} 
@@ -402,7 +402,7 @@ const App: React.FC = () => {
                             r<sup>B</sup> ln[(p<sub>n</sub> - p<sub>c</sub>) / (p<sub>r</sub> - p<sub>c</sub>)] = A
                             </div>
                             
-                            {/* Formula Legend */}
+                            {/* 公式图例 */}
                             <div className="mt-3 pt-2 border-t border-slate-200/50 grid grid-cols-2 gap-y-1.5 gap-x-2">
                             <div className="flex items-center gap-1.5">
                                 <span className="font-serif italic font-bold text-slate-600 text-[10px]">r</span>
