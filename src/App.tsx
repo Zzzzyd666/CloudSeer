@@ -57,6 +57,67 @@ const CollapsiblePanel: React.FC<{
   </div>
 );
 
+const CaseSelectorDropdown: React.FC<{
+  options: typeof MOCK_CASES;
+  value: string;
+  onChange: (id: string) => void;
+  language: Language;
+}> = ({ options, value, onChange, language }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(o => o.id === value);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 bg-slate-100/50 text-sm font-semibold text-slate-700 outline-none border-none py-1.5 px-3 rounded-lg hover:bg-slate-200/50 cursor-pointer transition-colors"
+      >
+        {selectedOption ? (language === 'en' ? selectedOption.nameEn : selectedOption.nameZh) : ''}
+        <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-full mt-2 left-0 w-48 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xl overflow-hidden z-50"
+          >
+            {options.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => {
+                  onChange(option.id);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-slate-100 ${
+                  value === option.id ? 'text-blue-600 bg-blue-50/50' : 'text-slate-700'
+                }`}
+              >
+                {language === 'en' ? option.nameEn : option.nameZh}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>('zh');
   const [selectedCaseId, setSelectedCaseId] = useState(MOCK_CASES[0].id);
@@ -160,21 +221,16 @@ const App: React.FC = () => {
                        <Target size={14} className="text-blue-500" />
                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('active_case')}</span>
                     </div>
-                    <select 
-                      value={selectedCaseId} 
-                      onChange={(e) => {
-                        setSelectedCaseId(e.target.value);
+                    <CaseSelectorDropdown
+                      options={MOCK_CASES}
+                      value={selectedCaseId}
+                      language={language}
+                      onChange={(id) => {
+                        setSelectedCaseId(id);
                         setCurrentIndex(0);
                         setIsPlaying(false);
                       }}
-                      className="bg-slate-100/50 text-sm font-semibold text-slate-700 outline-none border-none py-1 px-3 rounded-lg hover:bg-slate-200/50 cursor-pointer transition-colors"
-                    >
-                      {MOCK_CASES.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {language === 'en' ? c.nameEn : c.nameZh}
-                        </option>
-                      ))}
-                    </select>
+                    />
                 </div>
             </div>
 

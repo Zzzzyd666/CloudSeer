@@ -48,5 +48,8 @@ export const TRANSLATIONS: Translations = {
   wind_label_short: { en: "WIND", zh: "风速" },
   pressure_label_short: { en: "PRES", zh: "气压" },
   wind_radii: { en: "Wind Radii (km)", zh: "风圈半径 (km)" },
-  analysis_dashboard: { en: "Analysis Dashboard", zh: "分析控制台" }
+  analysis_dashboard: { en: "Analysis Dashboard", zh: "分析控制台" },
+  prev_page: { en: "Previous", zh: "上一页" },
+  next_page: { en: "Next", zh: "下一页" },
+  page_info: { en: "Page {current} of {total}", zh: "第 {current} 页，共 {total} 页" }
 };

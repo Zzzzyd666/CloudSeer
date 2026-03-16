@@ -16,6 +16,7 @@ import {
   Users
 } from 'lucide-react';
 import { Language } from '../types';
+import { TRANSLATIONS } from '../constants';
 
 interface LabDetailsPanelProps {
   isOpen: boolean;
@@ -150,23 +151,68 @@ const RESEARCH_DIRECTIONS = [
   }
 ];
 
-const PAPERS = [
-  { year: "2024", conf: "CVPR", title: "DeepTyphoon: A Benchmark Dataset for Intensity Estimation", tag: "Dataset" },
-  { year: "2023", conf: "Nature Comms", title: "Physics-informed neural networks for tropical cyclone monitoring", tag: "Physics-AI" },
-  { year: "2023", conf: "NeurIPS", title: "Spatio-temporal forecasting of wind radii using Transformer models", tag: "Deep Learning" },
-  { year: "2022", conf: "BAMS", title: "Review of AI methods in Modern Meteorology", tag: "Survey" },
-];
+// --- Dynamic Papers Loading ---
+const paperModules = import.meta.glob('/src/papers/*.pdf', { query: '?url', import: 'default', eager: true });
+
+const PAPERS = Object.entries(paperModules).map(([path, url]) => {
+  const filename = path.split('/').pop()?.replace('.pdf', '') || '';
+  // Try to parse YYYY_Conf_Author_Title
+  const matchWithAuthor = filename.match(/^(\d{4})_([^_]+)_([^_]+)_(.+)$/);
+  // Try to parse YYYY_Conf_Title
+  const matchWithoutAuthor = filename.match(/^(\d{4})_([^_]+)_(.+)$/);
+  
+  if (matchWithAuthor) {
+    return {
+      year: matchWithAuthor[1],
+      conf: matchWithAuthor[2],
+      authors: matchWithAuthor[3],
+      title: matchWithAuthor[4],
+      tag: "Paper",
+      url: url as string
+    };
+  } else if (matchWithoutAuthor) {
+    return {
+      year: matchWithoutAuthor[1],
+      conf: matchWithoutAuthor[2],
+      authors: "Lab Members",
+      title: matchWithoutAuthor[3],
+      tag: "Paper",
+      url: url as string
+    };
+  }
+  
+  // Fallback
+  return {
+    year: "N/A",
+    conf: "Unknown",
+    authors: "Lab Members",
+    title: filename,
+    tag: "Paper",
+    url: url as string
+  };
+}).sort((a, b) => b.year.localeCompare(a.year));
 
 const TEAM = [
-  { name: "Dr. Y. Chen", role: "Principal Investigator", initials: "YC", isLead: true },
-  { name: "A. Smith", role: "Postdoc Fellow", initials: "AS", isLead: false },
-  { name: "L. Wang", role: "PhD Candidate", initials: "LW", isLead: false },
-  { name: "K. Zhang", role: "PhD Candidate", initials: "KZ", isLead: false },
-  { name: "M. Suzuki", role: "Research Assistant", initials: "MS", isLead: false },
+  { name: "Professor A", role: "Principal Investigator", initials: "PA", isLead: true },
+  { name: "Student A", role: "PhD Candidate", initials: "SA", isLead: false },
+  { name: "Student B", role: "PhD Candidate", initials: "SB", isLead: false },
+  { name: "Student C", role: "Master Student", initials: "SC", isLead: false },
+  { name: "Student D", role: "Master Student", initials: "SD", isLead: false },
+  { name: "Student E", role: "Master Student", initials: "SE", isLead: false },
+  { name: "Student F", role: "Master Student", initials: "SF", isLead: false },
+  { name: "Student G", role: "Undergraduate", initials: "SG", isLead: false },
+  { name: "Student H", role: "Undergraduate", initials: "SH", isLead: false },
 ];
 
 export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClose, language, activeSection }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const papersPerPage = 10;
+
+  const indexOfLastPaper = currentPage * papersPerPage;
+  const indexOfFirstPaper = indexOfLastPaper - papersPerPage;
+  const currentPapers = PAPERS.slice(indexOfFirstPaper, indexOfLastPaper);
+  const totalPages = Math.ceil(PAPERS.length / papersPerPage);
 
   useEffect(() => {
     if (isOpen) {
@@ -396,29 +442,60 @@ export const LabDetailsPanel: React.FC<LabDetailsPanelProps> = ({ isOpen, onClos
                         <Skeleton className="w-16 h-6 rounded-full" />
                     </div>
                 ))
+              ) : PAPERS.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  No papers found in the src/papers directory.
+                </div>
               ) : (
-                PAPERS.map((paper, i) => (
-                    <div 
-                    key={i} 
-                    className="group flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white rounded-xl border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer"
-                    >
-                    <div className="flex items-center gap-3 w-32 flex-shrink-0">
-                        <span className="px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-bold">{paper.year}</span>
-                        <span className="text-xs font-bold text-blue-600">{paper.conf}</span>
+                <>
+                  {currentPapers.map((paper, i) => (
+                      <a 
+                      key={i} 
+                      href={paper.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white rounded-xl border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer"
+                      >
+                      <div className="flex items-center gap-3 w-32 flex-shrink-0">
+                          <span className="px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-bold">{paper.year}</span>
+                          <span className="text-xs font-bold text-blue-600">{paper.conf}</span>
+                      </div>
+                      <div className="flex-1">
+                          <h5 className="font-bold text-slate-800 text-base group-hover:text-blue-600 transition-colors">
+                          {paper.title}
+                          </h5>
+                      </div>
+                      <div className="flex items-center gap-4">
+                          <span className="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-wide">
+                          {paper.tag}
+                          </span>
+                          <ExternalLink size={16} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+                      </div>
+                      </a>
+                  ))}
+                  
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-4 mt-8 pt-4 border-t border-slate-100">
+                      <button 
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent transition-colors text-sm font-medium"
+                      >
+                        {TRANSLATIONS.prev_page[language]}
+                      </button>
+                      <span className="text-sm text-slate-500 font-medium">
+                        {TRANSLATIONS.page_info[language].replace('{current}', currentPage.toString()).replace('{total}', totalPages.toString())}
+                      </span>
+                      <button 
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent transition-colors text-sm font-medium"
+                      >
+                        {TRANSLATIONS.next_page[language]}
+                      </button>
                     </div>
-                    <div className="flex-1">
-                        <h5 className="font-bold text-slate-800 text-base group-hover:text-blue-600 transition-colors">
-                        {paper.title}
-                        </h5>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <span className="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-wide">
-                        {paper.tag}
-                        </span>
-                        <ExternalLink size={16} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
-                    </div>
-                    </div>
-                ))
+                  )}
+                </>
               )}
             </div>
           </motion.section>

@@ -96,21 +96,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ language, onLanguageToggle, on
   return (
     // Fixed width 288px to strictly match the parent motion.aside width
     <div className="h-full w-[288px] min-w-[288px] border-r border-slate-200 bg-white flex flex-col z-20 relative">
-      <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-lg shrink-0">
-            <Activity className="text-white" size={24} />
-          </div>
-          <div>
-            <h1 className="font-bold text-slate-800 leading-tight text-sm">{t('lab_name')}</h1>
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Research Platform</p>
-          </div>
+      <div className="p-5 border-b border-slate-100 flex items-start justify-between gap-2">
+        <div>
+          <h1 className="font-bold text-slate-800 leading-tight text-sm">{t('lab_name')}</h1>
+          <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">RESEARCH PLATFORM</p>
         </div>
         
         {/* Collapse Button */}
         <button 
           onClick={onCollapse}
-          className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+          className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors -mt-1 -mr-1 shrink-0"
           title="Collapse Sidebar"
         >
           <PanelLeftClose size={18} />

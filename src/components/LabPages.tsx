@@ -14,9 +14,51 @@ import {
   Wind,
   CloudRain,
   Bot,
-  Activity
+  Activity,
+  Github,
+  MapPin,
+  Phone,
+  Building,
+  Download,
+  ExternalLink
 } from 'lucide-react';
 import { Language } from '../types';
+
+const paperModules = import.meta.glob('/src/papers/*.pdf', { query: '?url', import: 'default', eager: true });
+
+const DYNAMIC_PAPERS = Object.entries(paperModules).map(([path, url]) => {
+  const filename = path.split('/').pop()?.replace('.pdf', '') || '';
+  // Match YYYY_Conf_Author_Title
+  const matchWithAuthor = filename.match(/^(\d{4})_([^_]+)_([^_]+)_(.+)$/);
+  // Match YYYY_Conf_Title (fallback)
+  const matchWithoutAuthor = filename.match(/^(\d{4})_([^_]+)_(.+)$/);
+  
+  if (matchWithAuthor) {
+    return {
+      year: matchWithAuthor[1],
+      conf: matchWithAuthor[2],
+      authors: matchWithAuthor[3],
+      title: matchWithAuthor[4],
+      url: url as string
+    };
+  } else if (matchWithoutAuthor) {
+    return {
+      year: matchWithoutAuthor[1],
+      conf: matchWithoutAuthor[2],
+      authors: "Lab Members",
+      title: matchWithoutAuthor[3],
+      url: url as string
+    };
+  }
+  
+  return {
+    year: "N/A",
+    conf: "Unknown",
+    title: filename,
+    authors: "Lab Members",
+    url: url as string
+  };
+}).sort((a, b) => b.year.localeCompare(a.year));
 
 // --- Shared Layout Component ---
 const PageLayout: React.FC<{ children: React.ReactNode; title: string; subtitle: string }> = ({ children, title, subtitle }) => (
@@ -187,18 +229,22 @@ export const LabOverview: React.FC<{ language: Language }> = ({ language }) => {
 // --- 2. Lab Team Page ---
 export const LabTeam: React.FC<{ language: Language }> = ({ language }) => {
     const LEADER = {
-        name: language === 'zh' ? "白琮" : "Cong Bai",
+        name: language === 'zh' ? "教授 A" : "Professor A",
         role: language === 'zh' ? "教授、博士生导师" : "Professor, Doctoral Supervisor",
         desc: language === 'zh' 
-            ? "浙江省杰出青年基金及延续资助项目获得者。主要研究方向为计算机视觉、科学人工智能在气象领域的应用等，主持国家级、省部级科研项目十多项，在相关领域发表高水平学术论文多篇，具备丰富的研究生培养与科研指导经验。"
-            : "Recipient of the Zhejiang Provincial Distinguished Youth Fund and its continued funding project. His main research interests include Computer Vision and AI for Science (Meteorology). He has presided over more than 10 national and provincial-level research projects, published numerous high-level academic papers, and possesses extensive experience in graduate supervision.",
+            ? "主要研究方向为计算机视觉、科学人工智能在气象领域的应用等，主持多项国家级、省部级科研项目，在相关领域发表高水平学术论文多篇，具备丰富的研究生培养与科研指导经验。"
+            : "His main research interests include Computer Vision and AI for Science (Meteorology). He has presided over multiple national and provincial-level research projects, published numerous high-level academic papers, and possesses extensive experience in graduate supervision.",
     };
 
     const MEMBERS = [
-        { name: language === 'zh' ? "朱鹏飞" : "Pengfei Zhu", role: language === 'zh' ? "硕士研究生" : "Master Student", type: "Student" },
-        { name: "Student A", role: language === 'zh' ? "硕士研究生" : "Master Student", type: "Student" },
-        { name: "Student B", role: language === 'zh' ? "硕士研究生" : "Master Student", type: "Student" },
-        { name: "Student C", role: language === 'zh' ? "本科生" : "Undergraduate", type: "Intern" },
+        { name: language === 'zh' ? "学生 A" : "Student A", role: language === 'zh' ? "博士研究生" : "PhD Candidate", type: "Student" },
+        { name: language === 'zh' ? "学生 B" : "Student B", role: language === 'zh' ? "博士研究生" : "PhD Candidate", type: "Student" },
+        { name: language === 'zh' ? "学生 C" : "Student C", role: language === 'zh' ? "硕士研究生" : "Master Student", type: "Student" },
+        { name: language === 'zh' ? "学生 D" : "Student D", role: language === 'zh' ? "硕士研究生" : "Master Student", type: "Student" },
+        { name: language === 'zh' ? "学生 E" : "Student E", role: language === 'zh' ? "硕士研究生" : "Master Student", type: "Student" },
+        { name: language === 'zh' ? "学生 F" : "Student F", role: language === 'zh' ? "硕士研究生" : "Master Student", type: "Student" },
+        { name: language === 'zh' ? "学生 G" : "Student G", role: language === 'zh' ? "本科生" : "Undergraduate", type: "Intern" },
+        { name: language === 'zh' ? "学生 H" : "Student H", role: language === 'zh' ? "本科生" : "Undergraduate", type: "Intern" },
     ];
 
   return (
@@ -211,7 +257,7 @@ export const LabTeam: React.FC<{ language: Language }> = ({ language }) => {
              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full translate-x-1/3 -translate-y-1/3 blur-3xl opacity-50 pointer-events-none" />
              <div className="relative shrink-0">
                 <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-slate-100 flex items-center justify-center text-5xl font-bold text-slate-300 border-4 border-white shadow-xl">
-                   {language === 'zh' ? "白" : "CB"}
+                   {language === 'zh' ? "教" : "PA"}
                 </div>
                 <div className="absolute bottom-2 right-2 bg-blue-600 text-white p-2 rounded-full border-4 border-white shadow-lg">
                     <GraduationCap size={20} />
@@ -234,41 +280,96 @@ export const LabTeam: React.FC<{ language: Language }> = ({ language }) => {
           </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl p-8 text-white flex flex-col justify-between shadow-lg h-full min-h-[220px]">
-            <div>
-                <h3 className="text-2xl font-bold mb-4">{language === 'zh' ? "加入我们" : "Join Us"}</h3>
-                <p className="text-blue-100 mb-6 leading-relaxed">
-                    {language === 'zh' ? "我们长期招收对 AI for Science 感兴趣的博士、硕士研究生及本科实习生。" : "We are looking for PhD, Master students and interns interested in AI for Science."}
-                </p>
-            </div>
-            <button className="flex items-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-xl font-bold hover:bg-blue-50 transition-colors w-max">
-                <Mail size={18} />
-                {language === 'zh' ? "联系我们" : "Contact Us"}
-            </button>
-        </div>
-
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mb-16">
         {MEMBERS.map((member, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between h-full">
+            <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 md:p-5 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between h-full">
                 <div>
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-100 flex items-center justify-center text-lg font-bold text-slate-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                             {member.name.substring(0, 1)}
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-slate-50 text-slate-500`}>
-                            {member.type}
-                        </span>
                     </div>
-                    <h4 className="text-xl font-bold text-slate-900 mb-1">{member.name}</h4>
-                    <p className="text-slate-500 font-medium">{member.role}</p>
+                    <h4 className="text-lg font-bold text-slate-900 mb-1">{member.name}</h4>
+                    <p className="text-slate-500 font-medium text-sm">{member.role}</p>
                 </div>
-                <div className="mt-6 pt-4 border-t border-slate-50 flex justify-end">
+                <div className="mt-4 pt-3 border-t border-slate-50 flex justify-end">
                     <span className="text-slate-300 group-hover:text-blue-400 transition-colors">
-                        <Cpu size={20} />
+                        <Cpu size={16} />
                     </span>
                 </div>
             </div>
         ))}
+      </div>
+
+      {/* Contact Us Section */}
+      <div className="mt-16">
+        <h3 className="text-3xl font-extrabold text-slate-900 mb-8 flex items-center gap-3">
+          <span className="w-1.5 h-8 bg-blue-600 rounded-full"/>
+          {language === 'zh' ? "联系我们" : "Contact Us"}
+        </h3>
+        
+        <div className="bg-white rounded-[2rem] border border-slate-200 p-8 md:p-12 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-10 relative overflow-hidden">
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-slate-50 rounded-full translate-x-1/3 translate-y-1/3 blur-3xl opacity-50 pointer-events-none" />
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10 flex-1">
+            <div className="flex items-start gap-4 text-lg text-slate-600">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <MapPin size={24} />
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 mb-1">{language === 'zh' ? "地址" : "Address"}</p>
+                <p className="text-base">?</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-4 text-lg text-slate-600">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Phone size={24} />
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 mb-1">{language === 'zh' ? "电话" : "Phone"}</p>
+                <p className="text-base">?</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-4 text-lg text-slate-600">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Mail size={24} />
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 mb-1">{language === 'zh' ? "邮箱" : "Email"}</p>
+                <p className="text-base">?</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4 text-lg text-slate-600">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Building size={24} />
+              </div>
+              <div>
+                <p className="font-bold text-slate-900 mb-1">{language === 'zh' ? "邮编" : "Zip Code"}</p>
+                <p className="text-base">?</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="relative z-10 shrink-0 w-full md:w-auto mt-4 md:mt-0">
+            <a 
+              href="https://github.com/Zjut-MultimediaPlus" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-4 bg-slate-900 text-white px-8 py-5 rounded-2xl hover:bg-slate-800 transition-all hover:shadow-xl hover:-translate-y-1 group w-full"
+            >
+              <Github size={32} className="group-hover:scale-110 transition-transform" />
+              <div className="flex flex-col items-start">
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-0.5">
+                  {language === 'zh' ? '关注我们' : 'Follow us on'}
+                </span>
+                <span className="text-xl font-bold tracking-wide">GitHub</span>
+              </div>
+            </a>
+          </div>
+        </div>
       </div>
     </PageLayout>
   );
@@ -343,37 +444,13 @@ export const LabResearch: React.FC<{ language: Language }> = ({ language }) => {
 
 // --- 4. Lab Publications Page ---
 export const LabPublications: React.FC<{ language: Language }> = ({ language }) => {
-    const PAPERS = [
-        { 
-            year: "2025", 
-            conf: "NeurIPS", 
-            title: "IDOL: Meeting Diverse Distribution Shifts with Prior Physics for Tropical Cyclone Multi-Task Estimation", 
-            authors: "Hanting Yan, et al.", 
-            tag: "Physics-AI" 
-        },
-        { 
-            year: "2024", 
-            conf: "CVPR", 
-            title: "DeepTyphoon: A Large-Scale Benchmark Dataset for Tropical Cyclone Estimation", 
-            authors: "Research Team", 
-            tag: "Dataset" 
-        },
-        { 
-            year: "2024", 
-            conf: "TGRS", 
-            title: "Spatio-Temporal Fusion Networks for Weather Forecasting", 
-            authors: "Lab Members", 
-            tag: "Remote Sensing" 
-        }
-    ];
-
   return (
     <PageLayout 
       title={language === 'zh' ? "学术成果" : "Publications"}
       subtitle={language === 'zh' ? "近期发表的顶级会议与期刊论文。" : "Recent papers published in top-tier conferences and journals."}
     >
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-          {PAPERS.map((paper, i) => (
+          {DYNAMIC_PAPERS.map((paper, i) => (
               <div key={i} className="p-8 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors flex flex-col md:flex-row gap-6 items-start md:items-center">
                   <div className="flex-shrink-0 w-24">
                     <span className="block text-2xl font-bold text-slate-200">{paper.year}</span>
@@ -385,15 +462,24 @@ export const LabPublications: React.FC<{ language: Language }> = ({ language }) 
                       </h4>
                       <p className="text-slate-500 font-medium text-sm">{paper.authors}</p>
                   </div>
-                  <div className="flex-shrink-0">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wide border border-slate-200">
-                        {paper.tag}
-                      </span>
-                  </div>
-                  <div className="flex-shrink-0">
-                      <button className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
-                        <ArrowRight size={18} />
-                      </button>
+                  <div className="flex-shrink-0 flex items-center gap-3">
+                      <a 
+                        href={paper.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all text-sm font-bold"
+                      >
+                        <ExternalLink size={16} />
+                        {language === 'zh' ? '打开' : 'Open'}
+                      </a>
+                      <a 
+                        href={paper.url} 
+                        download
+                        className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all text-sm font-bold"
+                      >
+                        <Download size={16} />
+                        {language === 'zh' ? '下载' : 'Download'}
+                      </a>
                   </div>
               </div>
           ))}
