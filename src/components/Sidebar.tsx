@@ -84,6 +84,7 @@ const SubItem: React.FC<{
 export const Sidebar: React.FC<SidebarProps> = ({ language, onLanguageToggle, onNavigate, currentView, onCollapse }) => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ 
     estimation: true,
+    cloudseer: true, // 新增
     laboratory: true 
   });
 
@@ -163,7 +164,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ language, onLanguageToggle, on
           />
         </NavItem>
 
-        <NavItem icon={Cloud} label={t('cloud_pred')} disabled />
+        
+        <NavItem 
+          icon={Cloud} 
+          label={t('cloud_pred')} 
+          isExpanded={expanded.cloudseer}
+          onToggle={() => toggleExpand('cloudseer')}
+        >
+          <SubItem 
+            icon={() => <div className={`w-1.5 h-1.5 rounded-full ml-1 mr-0.5 ${currentView === 'cloudseer' ? 'bg-blue-600' : 'bg-slate-300'}`} />}
+            label={language === 'en' ? 'CloudSeer Viz' : 'CloudSeer 可视化'}
+            onClick={() => onNavigate('cloudseer')}
+            active={currentView === 'cloudseer'}
+          />
+        </NavItem>
+
         <NavItem icon={Droplets} label={t('rainfall_forecasting')} disabled />
       </div>
 

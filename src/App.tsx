@@ -4,6 +4,10 @@ import { Sidebar } from './components/Sidebar';
 import { TyphoonMap } from './components/TyphoonMap';
 import { MetricsChart } from './components/MetricsChart';
 import { SatelliteView } from './components/SatelliteView';
+
+// 新增导入CloudSeerView
+import { CloudSeerView } from './components/CloudSeerView';
+
 import { LabOverview, LabTeam, LabResearch, LabPublications } from './components/LabPages';
 import { MOCK_CASES } from './utils/dataGenerator';
 import { Language, ViewType } from './types';
@@ -182,6 +186,22 @@ const App: React.FC = () => {
         return <LabResearch language={language} />;
       case 'lab_publications':
         return <LabPublications language={language} />;
+      
+      
+        // --- 新增CloudSeer分支 ---
+      case 'cloudseer':
+        return (
+          <CloudSeerView 
+            language={language}
+            onNavigate={setCurrentView}
+            isLeftPanelOpen={isLeftPanelOpen}
+            onToggleLeftPanel={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
+          />
+        );
+    // --- 新增结束 ---
+      
+
+      
       case 'map':
       default:
         // 渲染地图及其覆盖层
