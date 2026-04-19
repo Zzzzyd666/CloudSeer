@@ -1,136 +1,235 @@
-// 实现核心云图渲染组件
-
-import React from 'react';
+// 实现核心云图渲染组件（一次加载，永不重复）
+import React, { useEffect, useMemo, useRef } from 'react';
+import { MapContainer, TileLayer, ImageOverlay, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { CloudSeerPoint, CloudSeerBand, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
 
-// 定义组件需要的参数（Props）
+// 修复 Leaflet 默认标记图标
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
 interface CloudSeerMapProps {
-  data: CloudSeerPoint[];// 云图数据（12帧）
-  currentIndex: number;// 当前显示第几帧云图
-  selectedBand: CloudSeerBand;// 当前选中的卫星波段（可见光/红外）
-  selectedModelId: string;// 当前选中的模型（真实值/CloudSeer预测）
+  data: CloudSeerPoint[];
+  currentIndex: number;
+  selectedBand: CloudSeerBand;
+  selectedModelId: string;
   language: Language;
   isRightPanelOpen: boolean;
+  onAllImagesLoaded?: () => void;
+  showBaseMap: boolean;
+  opacity?: number;
 }
 
+// ===================== 核心配置 =====================
+const DEFAULT_CASE_FOLDER = 'test_epoch_0_data_96';
+const BAND_TO_FOLDER: Record<string, string> = {
+  '0.64': 'albedo_03',
+  '1.6': 'albedo_05',
+  '3.9': 'tbb_07',
+  '8.6': 'tbb_11',
+  '10.4': 'tbb_13',
+  '11.2': 'tbb_14',
+  '12.3': 'tbb_15',
+  '13.3': 'tbb_16',
+};
+const TOTAL_FRAMES = 12;
+const CONTEXT_FRAME_COUNT = 6;
+const ALL_BAND_IDS = Object.keys(BAND_TO_FOLDER);
 
-// 定义组件（标准 React 函数组件）
+// 数据集地理边界（原始经纬度，不可更改）
+const CLOUD_MAP_BOUNDS: L.LatLngBoundsExpression = [[23.90, 114.05], [36.65, 126.80]];
+const MAP_CENTER: [number, number] = [30.275, 120.425];
+const MAP_ZOOM = 7;
+// ====================================================
+
+/**
+ * 计算云图宽度覆盖容器所需的最小缩放级别
+ * 保证左右方向云图宽度 ≥ 容器宽度（左右无空白）
+ */
+const getMinZoomForLateralCoverage = (
+  map: L.Map,
+  bounds: L.LatLngBoundsExpression
+): number => {
+  const latLngBounds = L.latLngBounds(bounds);
+  const mapSize = map.getSize();
+  if (mapSize.x === 0 || mapSize.y === 0) {
+    return MAP_ZOOM;
+  }
+  const northWest = map.project(latLngBounds.getNorthWest(), 0);
+  const southEast = map.project(latLngBounds.getSouthEast(), 0);
+  const imgWidth = Math.abs(southEast.x - northWest.x);
+
+  const scale = mapSize.x / imgWidth;
+  const minZoom = Math.log2(scale);
+  return Math.ceil(minZoom * 100) / 100;
+};
+
+/**
+ * 地图固定控制器
+ * - 设置 maxBounds：经度和纬度都严格等于云图原始边界 → 完全禁止移出云图范围
+ * - 动态设置 minZoom：确保左右方向云图宽度始终 ≥ 容器宽度
+ */
+const MapFixedController: React.FC = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    // 直接使用云图原始边界作为 maxBounds，不进行任何扩展
+    // 这样用户平移、缩放均无法看到云图经度范围以外的部分
+    const cloudBounds = L.latLngBounds(CLOUD_MAP_BOUNDS);
+    
+    map.setMaxBounds(cloudBounds);
+    map.setMinZoom(MAP_ZOOM - 1);
+    map.setMaxZoom(MAP_ZOOM + 2);
+
+    const updateMinZoom = () => {
+      if (map.getSize().x === 0) return;
+      const minZ = getMinZoomForLateralCoverage(map, CLOUD_MAP_BOUNDS);
+      const currentZoom = map.getZoom();
+      if (currentZoom < minZ) {
+        map.setZoom(minZ);
+      }
+      // 动态限制最小缩放，防止缩小露出云图边界以外的区域
+      map.setMinZoom(Math.max(MAP_ZOOM - 1, minZ));
+    };
+
+    map.whenReady(() => {
+      updateMinZoom();
+    });
+
+    map.on('resize', updateMinZoom);
+
+    return () => {
+      map.off('resize', updateMinZoom);
+    };
+  }, [map]);
+
+  return null;
+};
+
 export const CloudSeerMap: React.FC<CloudSeerMapProps> = ({ 
   data, 
   currentIndex, 
   selectedBand, 
   selectedModelId,
   language,
-  isRightPanelOpen
-}) => {// 组件内部工具函数
-  const t = (key: string) => TRANSLATIONS[key][language];// 一键切换中英文（和之前的翻译字典配套）
-  const currentPoint = data[currentIndex];// 获取当前要显示的那一帧云图
-  const bandIndex = parseInt(selectedBand.id.split('.')[0]) % 8; // 简单映射到0-7
-  
-  // 核心：生成云图Canvas
-  const renderCloudCanvas = () => {
-    const canvas = document.createElement('canvas');
-    const width = 512;
-    const height = 512;
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) return canvas.toDataURL();
-    
-    const cloudData = currentPoint.cloudData[bandIndex % currentPoint.cloudData.length];
-    const imageData = ctx.createImageData(width, height);
-    
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const dataY = Math.floor((y / height) * cloudData.length);
-        const dataX = Math.floor((x / width) * cloudData[0].length);
-        const value = cloudData[dataY]?.[dataX] || 0;
-        
-        // 根据波段类型选择颜色映射
-        let r, g, b;
-        if (selectedBand.id === '0.64' || selectedBand.id === '1.6') {
-          // 可见光/近红外：灰度图
-          const gray = Math.floor(value * 255);
-          r = g = b = gray;
-        } else {
-          // 红外：伪彩色（黑-蓝-青-白）
-          if (value < 0.3) {
-            r = 0; g = 0; b = Math.floor(value * 850);
-          } else if (value < 0.6) {
-            r = 0; g = Math.floor((value - 0.3) * 850); b = 255;
-          } else {
-            r = g = b = Math.floor((value - 0.6) * 850);
-          }
-        }
-        
-        const idx = (y * width + x) * 4;
-        imageData.data[idx] = r;
-        imageData.data[idx + 1] = g;
-        imageData.data[idx + 2] = b;
-        imageData.data[idx + 3] = 255;
-      }
-    }
-    
-    ctx.putImageData(imageData, 0, 0);
-    return canvas.toDataURL();
-  };
+  isRightPanelOpen,
+  onAllImagesLoaded,
+  showBaseMap,
+  opacity = 0.6
+}) => {
+  const t = (key: string) => TRANSLATIONS[key][language];
+  const hasAllImagesLoadedRef = useRef(false);
 
-  //  页面渲染（JSX）
-  return (
-    <div className="w-full h-full relative bg-[#0a0b0f]">
-      {/* 背景网格 */}
-      <div className="absolute inset-0 opacity-[0.03]">
+  const allCloudUrls = useMemo<Record<string, string[]>>(() => {
+    const urlMap: Record<string, string[]> = {};
+    ALL_BAND_IDS.forEach(bandId => {
+      const bandUrls: string[] = [];
+      const bandFolderName = BAND_TO_FOLDER[bandId];
+      const basePath = `/examples/${DEFAULT_CASE_FOLDER}/${bandFolderName}`;
+      for (let i = 0; i < CONTEXT_FRAME_COUNT; i++) {
+        bandUrls.push(`${basePath}/context/time_step_${i}.png`);
+      }
+      for (let i = 0; i < TOTAL_FRAMES - CONTEXT_FRAME_COUNT; i++) {
+        bandUrls.push(`${basePath}/pred/time_step_${i}.png`);
+      }
+      urlMap[bandId] = bandUrls;
+    });
+    return urlMap;
+  }, []);
+
+  useEffect(() => {
+    if (hasAllImagesLoadedRef.current) {
+      onAllImagesLoaded?.();
+      return;
+    }
+
+    const loadAllImages = async () => {
+      const allUrlsToLoad: string[] = Object.values(allCloudUrls).flat() as string[];
+      console.log(`🚀 开始加载所有云图，总数: ${allUrlsToLoad.length}`);
+      
+      const loadPromises = allUrlsToLoad.map(url => new Promise<void>(resolve => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => { console.error('❌ 加载失败:', url); resolve(); };
+        img.src = url;
+      }));
+      
+      await Promise.all(loadPromises);
+      console.log('🎉 所有云图加载完成');
+      hasAllImagesLoadedRef.current = true;
+      onAllImagesLoaded?.();
+    };
+
+    loadAllImages();
+  }, [allCloudUrls, onAllImagesLoaded]);
+
+  const currentBandUrls = allCloudUrls[selectedBand.id] || [];
+  const currentImageUrl = currentBandUrls[currentIndex] || '';
+
+  if (!showBaseMap) {
+    return (
+      <div className="w-full h-full relative bg-white">
+        <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
           <div className="w-full h-full" style={{ 
-            backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', 
+            backgroundImage: 'linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px)', 
             backgroundSize: '40px 40px' 
           }} />
-      </div>
-      
-      {/* 云图渲染 */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative">
-          <img 
-            src={renderCloudCanvas()} 
-            alt="Cloud Nowcast"
-            className="max-w-[80vh] max-h-[80vh] rounded-lg shadow-2xl"
-            style={{ imageRendering: 'pixelated' }}
-          />
-          
-          {/* 叠加信息 */}
-          <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-lg text-white">
-            <p className="text-xs font-bold uppercase tracking-wider text-blue-300">
-              {selectedBand.wavelength} {selectedBand.unit} - {language === 'en' ? selectedBand.nameEn : selectedBand.nameZh}
-            </p>
-            <p className="text-sm font-mono mt-1">
-              {currentPoint.time}
-            </p>
-          </div>
-          
-          {/* 模型标签 */}
-          <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-lg text-white">
-            <p className="text-xs font-bold uppercase tracking-wider text-emerald-300">
-              {selectedModelId === 'gt' ? t('gt_cloud') : 
-               selectedModelId.includes('cloudseer') ? t('cloudseer_pred') : 
-               selectedModelId}
-            </p>
-          </div>
         </div>
+        <MapContainer 
+          center={MAP_CENTER} 
+          zoom={MAP_ZOOM} 
+          scrollWheelZoom={true} 
+          className="w-full h-full z-0"
+          zoomControl={false}
+          attributionControl={false}
+          style={{ background: 'white' }}
+        >
+          {currentImageUrl && (
+            <ImageOverlay
+              url={currentImageUrl}
+              bounds={CLOUD_MAP_BOUNDS}
+              opacity={opacity}
+              zIndex={10}
+            />
+          )}
+          <MapFixedController />
+        </MapContainer>
+        <style>{`.leaflet-container { background: #f5f5f5 !important; }`}</style>
       </div>
-      
-      {/* 扫描线动画 */}
-      <div className="absolute top-0 left-0 w-full h-[2px] bg-white/10 shadow-[0_0_15px_rgba(255,255,255,0.3)] z-20 animate-scanLine" />
-      
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes scanLine {
-          0% { top: -10%; }
-          100% { top: 110%; }
-        }
-        .animate-scanLine {
-          animation: scanLine 4s linear infinite;
-        }
-      `}} />
+    );
+  }
+
+  return (
+    <div className="w-full h-full relative bg-[#0a0b0f]">
+      <MapContainer 
+        center={MAP_CENTER} 
+        zoom={MAP_ZOOM} 
+        scrollWheelZoom={true} 
+        className="w-full h-full z-0"
+        zoomControl={false}
+        attributionControl={false}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.amap.com/">高德地图</a>'
+          url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}"
+          subdomains={['1', '2', '3', '4']}
+        />
+        {currentImageUrl && (
+          <ImageOverlay
+            url={currentImageUrl}
+            bounds={CLOUD_MAP_BOUNDS}
+            opacity={opacity}
+            zIndex={10}
+          />
+        )}
+        <MapFixedController />
+      </MapContainer>
     </div>
   );
 };

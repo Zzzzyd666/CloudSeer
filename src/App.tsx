@@ -6,7 +6,21 @@ import { MetricsChart } from './components/MetricsChart';
 import { SatelliteView } from './components/SatelliteView';
 
 // 新增导入CloudSeerView
+// 新增CloudSeer相关导入
 import { CloudSeerView } from './components/CloudSeerView';
+import { CLOUDSEER_CASES, CLOUDSEER_BANDS, CLOUDSEER_MODELS } from './utils/dataGenerator';
+import { CloudSeerMetrics } from './components/CloudSeerMetrics';
+import { MotionVectorField } from './components/MotionVectorField';
+import { ModelPrinciplePanel } from './components/ModelPrinciplePanel';
+
+
+
+// 找到这行代码，补充 Activity 和 PanelRightClose
+import { 
+  // 你原本已有的图标...
+  Activity,   
+  Wind      // 新增
+} from 'lucide-react';
 
 import { LabOverview, LabTeam, LabResearch, LabPublications } from './components/LabPages';
 import { MOCK_CASES } from './utils/dataGenerator';
@@ -142,8 +156,28 @@ const App: React.FC = () => {
     physics: true
   });
 
+
+// --- 新增：CloudSeer 页面专属状态（和台风状态完全对齐结构）---
+  const [cloudseerSelectedCaseId, setCloudseerSelectedCaseId] = useState(CLOUDSEER_CASES[0].id);
+  const [cloudseerSelectedBandId, setCloudseerSelectedBandId] = useState(CLOUDSEER_BANDS[0].id);
+  const [cloudseerSelectedModelId, setCloudseerSelectedModelId] = useState('cloudseer-b');
+  const [cloudseerCurrentIndex, setCloudseerCurrentIndex] = useState(5); // 默认T+0
+  const [cloudseerIsPlaying, setCloudseerIsPlaying] = useState(false);
+  const [isCloudseerRightPanelOpen, setIsCloudseerRightPanelOpen] = useState(true); // 右侧面板开关
+  const [cloudseerPanels, setCloudseerPanels] = useState({
+    metrics: true,
+    motion: true,
+    principle: true
+  });
+
   const togglePanel = (key: keyof typeof panels) => {
     setPanels(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+
+    // --- 新增：CloudSeer 面板切换函数 ---
+  const toggleCloudseerPanel = (key: keyof typeof cloudseerPanels) => {
+    setCloudseerPanels(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const selectedCase = MOCK_CASES.find(c => c.id === selectedCaseId) || MOCK_CASES[0];
@@ -188,16 +222,29 @@ const App: React.FC = () => {
         return <LabPublications language={language} />;
       
       
-        // --- 新增CloudSeer分支 ---
-      case 'cloudseer':
-        return (
-          <CloudSeerView 
-            language={language}
-            onNavigate={setCurrentView}
-            isLeftPanelOpen={isLeftPanelOpen}
-            onToggleLeftPanel={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
-          />
-        );
+   // --- 修改：CloudSeer 分支，仅传递状态，不包含右侧边栏 ---
+    case 'cloudseer':
+      return (
+        <CloudSeerView 
+          language={language}
+          onNavigate={setCurrentView}
+          isLeftPanelOpen={isLeftPanelOpen}
+          onToggleLeftPanel={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
+          // CloudSeer 专属状态传递
+          selectedCaseId={cloudseerSelectedCaseId}
+          setSelectedCaseId={setCloudseerSelectedCaseId}
+          selectedBandId={cloudseerSelectedBandId}
+          setSelectedBandId={setCloudseerSelectedBandId}
+          selectedModelId={cloudseerSelectedModelId}
+          setSelectedModelId={setCloudseerSelectedModelId}
+          currentIndex={cloudseerCurrentIndex}
+          setCurrentIndex={setCloudseerCurrentIndex}
+          isPlaying={cloudseerIsPlaying}
+          setIsPlaying={setCloudseerIsPlaying}
+          isRightPanelOpen={isCloudseerRightPanelOpen}
+          onToggleRightPanel={() => setIsCloudseerRightPanelOpen(!isCloudseerRightPanelOpen)}
+        />
+      );
     // --- 新增结束 ---
       
 
@@ -396,6 +443,7 @@ const App: React.FC = () => {
                         data={selectedCase.data} 
                         currentIndex={currentIndex} 
                         language={language} 
+                        
                     />
                     </CollapsiblePanel>
                     
@@ -466,6 +514,87 @@ const App: React.FC = () => {
         </motion.aside>
       )}
       </AnimatePresence>
+
+
+ {/* --- 新增：CloudSeer 页面右侧仪表盘面板 完全对齐台风样式 --- */}
+    <AnimatePresence>
+      {currentView === 'cloudseer' && (
+        <motion.aside 
+            initial={{ width: 420, opacity: 1 }}
+            animate={{ width: isCloudseerRightPanelOpen ? 420 : 0, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="h-full border-l border-slate-200 bg-white z-10 relative flex-shrink-0 overflow-hidden shadow-xl"
+        >
+            {/* 内部容器固定宽度 和台风完全一致 */}
+            <div className="w-[420px] h-full flex flex-col">
+                {/* 顶部标题栏 和台风完全一致 */}
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div className="flex items-center gap-2 text-slate-700 font-bold">
+                        <Activity size={18} className="text-blue-500" />
+                        <span>{t('analysis_dashboard')}</span>
+                    </div>
+                    <button 
+                    onClick={() => setIsCloudseerRightPanelOpen(false)}
+                    className="p-1.5 rounded-md text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+                    >
+                        <PanelRightClose size={18} />
+                    </button>
+                </div>
+
+                {/* 面板内容区域 和台风结构完全一致 */}
+                <div className="flex-1 overflow-y-auto p-6 gap-4 flex flex-col">
+                    {/* 1. 预报精度指标面板 */}
+                    <CollapsiblePanel 
+                    title={t('cloudseer_metrics')} 
+                    isOpen={cloudseerPanels.metrics} 
+                    onToggle={() => toggleCloudseerPanel('metrics')}
+                    >
+                    <CloudSeerMetrics 
+                        data={CLOUDSEER_CASES.find(c => c.id === cloudseerSelectedCaseId)?.data || CLOUDSEER_CASES[0].data}
+                        currentIndex={cloudseerCurrentIndex} 
+                        language={language} 
+                        selectedBandId={cloudseerSelectedBandId}
+
+                    />
+                    </CollapsiblePanel>
+                    
+                    {/* 2. 大气运动矢量场面板 */}
+                    <CollapsiblePanel 
+                    title={t('motion_vector_field')} 
+                    isOpen={cloudseerPanels.motion} 
+                    onToggle={() => toggleCloudseerPanel('motion')}
+                    extraHeader={<Wind size={14} className="text-blue-500" />}
+                    >
+                    <MotionVectorField 
+                        data={
+                          (CLOUDSEER_CASES.find(c => c.id === cloudseerSelectedCaseId)?.data || CLOUDSEER_CASES[0].data)
+                          [cloudseerCurrentIndex]?.displacementField || []
+                        }
+                        language={language}
+                        // 新增这一行：把当前帧索引传进去
+                        currentIndex={cloudseerCurrentIndex} 
+                    />
+                    </CollapsiblePanel>
+
+                    {/* 3. 模型原理面板 */}
+                    <CollapsiblePanel 
+                    title={t('cloudseer_arch')} 
+                    isOpen={cloudseerPanels.principle} 
+                    onToggle={() => toggleCloudseerPanel('principle')}
+                    extraHeader={<Zap size={14} className="text-emerald-500 fill-emerald-500" />}
+                    >
+                    <ModelPrinciplePanel language={language} />
+                    </CollapsiblePanel>
+                </div>
+            </div>
+        </motion.aside>
+      )}
+    </AnimatePresence>
+
+
+
+
     </div>
   );
 };

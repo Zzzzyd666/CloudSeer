@@ -1,142 +1,89 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../constants';
 
 interface MotionVectorFieldProps {
-  data: number[][][];
+  data: any[];
   language: Language;
+  currentIndex: number;
 }
 
-export const MotionVectorField: React.FC<MotionVectorFieldProps> = ({ data, language }) => {
+// 固定配置
+const VECTOR_FIELD_FOLDER = '/examples/test_epoch_0_data_96/displacement_fields';
+const TOTAL_PRED_FRAMES = 6;
+
+export const MotionVectorField: React.FC<MotionVectorFieldProps> = ({ 
+  language, 
+  currentIndex 
+}) => {
   const t = (key: string) => TRANSLATIONS[key][language];
-  
-  // 渲染矢量场Canvas
-  const renderVectorCanvas = () => {
-    const canvas = document.createElement('canvas');
-    const width = 300;
-    const height = 300;
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) return canvas.toDataURL();
-    
-    // 清空背景
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, width, height);
-    
-    // 绘制网格
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 0.5;
-    for (let i = 0; i <= 10; i++) {
-      ctx.beginPath();
-      ctx.moveTo(i * width / 10, 0);
-      ctx.lineTo(i * width / 10, height);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(0, i * height / 10);
-      ctx.lineTo(width, i * height / 10);
-      ctx.stroke();
+  const isPastFrame = currentIndex <= 5;
+  const futureFrameIndex = currentIndex - 6;
+
+  // ===================== 核心修复1：预先生成所有图片路径并缓存 =====================
+  const allVectorUrls = useMemo(() => {
+    const urls: string[] = [];
+    for (let i = 0; i < TOTAL_PRED_FRAMES; i++) {
+      const paddedIdx = String(i).padStart(2, '0');
+      urls.push(`${VECTOR_FIELD_FOLDER}/timestep_${paddedIdx}.png`);
     }
-    
-    // 绘制箭头
-    const step = 20;
-    ctx.strokeStyle = '#60a5fa';
-    ctx.fillStyle = '#60a5fa';
-    
-    for (let y = step; y < height - step; y += step) {
-      for (let x = step; x < width - step; x += step) {
-        const dataY = Math.floor((y / height) * data.length);
-        const dataX = Math.floor((x / width) * data[0].length);
-        const [dx, dy] = data[dataY]?.[dataX] || [0, 0];
-        
-        // 缩放箭头长度
-        const scale = 5;
-        const arrowLength = Math.sqrt(dx * dx + dy * dy) * scale;
-        const angle = Math.atan2(dy, dx);
-        
-        if (arrowLength > 0.5) {
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x + Math.cos(angle) * arrowLength, y + Math.sin(angle) * arrowLength);
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-          
-          // 箭头头部
-          const headLength = 4;
-          ctx.beginPath();
-          ctx.moveTo(x + Math.cos(angle) * arrowLength, y + Math.sin(angle) * arrowLength);
-          ctx.lineTo(
-            x + Math.cos(angle) * arrowLength - Math.cos(angle - Math.PI / 6) * headLength,
-            y + Math.sin(angle) * arrowLength - Math.sin(angle - Math.PI / 6) * headLength
-          );
-          ctx.lineTo(
-            x + Math.cos(angle) * arrowLength - Math.cos(angle + Math.PI / 6) * headLength,
-            y + Math.sin(angle) * arrowLength - Math.sin(angle + Math.PI / 6) * headLength
-          );
-          ctx.closePath();
-          ctx.fill();
-        }
-      }
-    }
-    
-    return canvas.toDataURL();
-  };
+    return urls;
+  }, []);
+
+  // ===================== 核心修复2：强制预加载所有图片，确保100%加载完成 =====================
+  useEffect(() => {
+    // 强制加载所有6张图
+    allVectorUrls.forEach(url => {
+      const img = new Image();
+      img.onload = () => {
+        console.log('✅ 矢量场加载完成:', url);
+      };
+      img.onerror = () => {
+        console.error('❌ 矢量场加载失败:', url);
+      };
+      img.src = url;
+    });
+  }, [allVectorUrls]);
+
+  // ===================== 核心修复3：直接获取当前图片路径，绝不重新计算 =====================
+  const currentImageUrl = isPastFrame ? '' : allVectorUrls[futureFrameIndex] || '';
 
   return (
-    <div className="space-y-4">
-      {/* 矢量场可视化 */}
-      <div className="relative h-[280px] w-full rounded-xl overflow-hidden bg-[#0f172a] border border-slate-200">
-        <div className="absolute inset-0 flex items-center justify-center">
+    <div className="w-full flex flex-col gap-2">
+      <div className="w-full bg-white rounded-xl overflow-hidden relative">
+        {isPastFrame ? (
+          <div className="w-full aspect-square flex items-center justify-center bg-slate-50 rounded-xl">
+            <p className="text-slate-400 text-sm font-medium">
+              {language === 'en' ? 'No vector field for past frames' : '过去帧无矢量场数据'}
+            </p>
+          </div>
+        ) : (
+          // ===================== 核心修复4：简化img标签，去掉可能导致闪烁的属性 =====================
           <img 
-            src={renderVectorCanvas()} 
+            src={currentImageUrl}
             alt="Motion Vector Field"
-            className="h-full w-full object-contain"
+            className="w-full h-full object-cover rounded-xl"
+            style={{ 
+              imageRendering: 'auto',
+              // 强制图片不消失，即使加载中也显示占位
+              minHeight: '200px',
+              backgroundColor: '#f8fafc'
+            }}
+            // 加载失败时显示背景色，绝不空白
+            onError={(e) => {
+              console.error('矢量场显示失败:', currentImageUrl);
+              e.currentTarget.style.backgroundColor = '#e2e8f0';
+            }}
           />
-        </div>
-        
-        {/* 图例 */}
-        <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm px-3 py-2 rounded-lg">
-          <p className="text-[9px] font-bold text-blue-300 uppercase tracking-wider">
-            {t('adcmp_branch')}
-          </p>
-          <p className="text-[8px] text-slate-300 mt-1">
-            {t('motion_texture_decouple')}
-          </p>
-        </div>
-      </div>
-      
-      {/* 物理约束说明 */}
-      <div className="grid grid-cols-1 gap-2">
-        <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-            <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">{t('advection')}</span>
+        )}
+
+        {/* 左下角标签 */}
+        {!isPastFrame && (
+          <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-md px-3 py-2 rounded-lg">
+            <p className="text-white text-sm font-bold">ADCMP 分支</p>
+            <p className="text-white/80 text-xs">运动-纹理解耦</p>
           </div>
-          <p className="text-[9px] text-blue-600 leading-relaxed">
-            Large-scale coherent advection patterns
-          </p>
-        </div>
-        
-        <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-            <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">{t('shear_stretch')}</span>
-          </div>
-          <p className="text-[9px] text-indigo-600 leading-relaxed">
-            Realistic mesoscale deformation patterns
-          </p>
-        </div>
-        
-        <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">{t('vorticity')}</span>
-          </div>
-          <p className="text-[9px] text-emerald-600 leading-relaxed">
-            Physically plausible circulation patterns
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );
